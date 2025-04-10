@@ -1,0 +1,86 @@
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  DynamoDBDocumentClient
+} from "@aws-sdk/lib-dynamodb";
+
+const client = new DynamoDBClient({});
+const ddb = DynamoDBDocumentClient.from(client);
+const TABLE_NAME = 'SecureData';
+export const handler = async (event) => {
+  const method = event.requestContext?.http?.method;
+  const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
+  const path = event.rawPath;
+  const body = event.body ? JSON.parse(event.body) : null;
+  console.log("Received method:", method);
+  console.log("Received path:", path);
+  console.log("User ID:", userId);
+  try {
+    // CREATE operation
+    if (method === 'POST' && path === '/data') {
+      const item = {
+        userId,
+        id: Date.now().toString(),
+        ...body
+      };
+      await ddb.send(new PutCommand({
+        TableName: TABLE_NAME,
+        Item: item
+      }));
+      return response(201, { message: 'Data created', item });
+    }
+
+    // READ operation
+    if (method === 'GET' && path.startsWith('/data/')) {
+      const dataId = path.split('/').pop();
+      console.log("Fetching dataId:", dataId);
+
+      const result = await ddb.send(new GetCommand({
+        TableName: TABLE_NAME,
+        Key: { userId, id: dataId }
+      }));
+
+      return response(200, result.Item || { message: 'Item not found' });
+    }
+
+    // UPDATE operation
+    if (method === 'PUT' && path.startsWith('/data/')) {
+      const dataId = path.split('/').pop();
+      const result = await ddb.send(new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: { userId, id: dataId },
+        UpdateExpression: 'set data = :d',
+        ExpressionAttributeValues: { ':d': body.data },
+        ReturnValues: 'UPDATED_NEW'
+      }));
+      return response(200, { message: 'Data updated', result });
+    }
+
+    // DELETE operation
+    if (method === 'DELETE' && path.startsWith('/data/')) {
+      const dataId = path.split('/').pop();
+      await ddb.send(new DeleteCommand({
+        TableName: TABLE_NAME,
+        Key: { userId, id: dataId }
+      }));
+      return response(200, { message: 'Data deleted' });
+    }
+
+    return response(400, { message: 'Unsupported route or method' });
+
+  } catch (err) {
+    console.error("Error:", err);
+    return response(500, { message: 'Server error', error: err.message });
+  }
+};
+
+function response(statusCode, body) {
+  return {
+    statusCode,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  };
+}
