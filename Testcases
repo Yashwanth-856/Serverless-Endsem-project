@@ -1,0 +1,76 @@
+1.	Create:
+{
+  "requestContext": {
+    "http": {
+      "method": "POST"
+    },
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "user-abc"
+        }
+      }
+    }
+  },
+  "rawPath": "/data",
+  "body": "{\"data\":\"Confidential Info A\"}",
+  "isBase64Encoded": false
+}
+
+
+2.	Read:
+{
+  "requestContext": {
+    "http": {
+      "method": "GET"
+    },
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "user-abc"
+        }
+      }
+    }
+  },
+  "rawPath": "/data/123",
+  "isBase64Encoded": false
+}
+
+
+3.	Update:
+{
+  "requestContext": {
+    "http": {
+      "method": "PUT"
+    },
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "user-abc"
+        }
+      }
+    }
+  },
+  "rawPath": "/data/123",
+  "body": "{\"data\":\"Updated Confidential Info A\"}",
+  "isBase64Encoded": false
+}
+
+
+4.	Delete:
+{
+  "requestContext": {
+    "http": {
+      "method": "DELETE"
+    },
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "user-abc"
+        }
+      }
+    }
+  },
+  "rawPath": "/data/123",
+  "isBase64Encoded": false
+}
